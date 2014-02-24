@@ -30,13 +30,20 @@ del_event(Ref) ->
 %%    ok.
 %%
 output(Flags, _Env) ->
-    Body = proplists:get_value(body, Flags, ""),
-    {Fs,_} = proplists:split(Flags, [smsc,rp,udhi,udh,srr,mref,
-				     vpf,vp,addr,pid,dcs,type,class,
-				     alphabet,compression,store,wait_type,
-				     notify,ref]),
-    Opts = lists:append(Fs),
-    gsms:send(Opts, Body).
+    Pin = proplists:get_value(pin, Flags),
+    PinReg = proplists:get_value(pin_reg, Flags, 0),
+    PinReg = proplists:get_value(pin_reg, Flags, 0),
+    Value = case proplists:get_value(value, Flags, false) of
+		0 -> false;
+		1 -> true;
+		false -> false;
+		true -> true
+	    end,
+    Polarity = proplists:get_value(polarity, Flags, false),
+    case Value =/= Polarity of
+	false -> gpio:clr(PinReg, Pin);
+	true ->gpio:set(PinReg, Pin)
+    end.
 
 %%
 %% validate_flags(in | out, Flags::[{atom(),term()}])
@@ -45,70 +52,22 @@ validate_flags(_Dir, []) ->
     ok;
 validate_flags(Dir, [{Key,Value}|Kvs]) ->
     case Key of
-	smsc when is_list(Value) ->
-	    %% FIXME: validate msisdn
+	pin_reg when is_integer(Value), Value >= 0 ->
 	    validate_flags(Dir, Kvs);
-	rp when is_boolean(Value) ->
+	pin when is_integer(Value), Value >= 0 ->
 	    validate_flags(Dir, Kvs);
-	udhi when is_boolean(Value) ->
+	value when Dir =:= out, is_boolean(Value) ->
 	    validate_flags(Dir, Kvs);
-	udh when Value =:= [] ->
+	value when Dir =:= out, is_integer(Value), Value >= 0, Value =< 1 ->
 	    validate_flags(Dir, Kvs);
-	udh when is_list(Value) ->
-	    %% FIXME: validate udh codings
+	interrupt when Value =:= rising;
+		       Value =:= falling;
+		       Value =:= both ->
 	    validate_flags(Dir, Kvs);
-	srr when is_boolean(Value) ->
-	    validate_flags(Dir, Kvs);
-	mref when is_integer(Value), Value>=0, Value=< 255 ->
-	    validate_flags(Dir, Kvs);
-	vpf when Value =:= none;
-		 Value =:= relative; 
-		 Value =:= enhanced; 
-		 Value =:= absolute ->
-	    validate_flags(Dir, Kvs);
-	vp ->
-	    case Value of
-		none ->
-		    validate_flags(Dir, Kvs);
-		{relative, Seconds} when is_integer(Seconds), Seconds>=0 ->
-		    validate_flags(Dir, Kvs);
-		{absolute,DateTimeTz} ->
-		    case gsms_codec:is_valid_scts(DateTimeTz) of
-			true ->
-			    validate_flags(Dir, Kvs);
-			false ->
-			    {error, badarg}
-		    end;
-		{enhanced,_} ->
-		    {error, not_supported}  %% yet
-	    end;
-	addr when is_list(Value) ->
-	    %% FIXME: validate msisdn
-	    validate_flags(Dir, Kvs);
-	pid when is_integer(Value), Value>=0, Value=<255 ->
-	    validate_flags(Dir, Kvs);
-	dcs when is_integer(Value) ->
-	    _Dcs = gsms_codec:decode_dcs(Value),
-	    validate_flags(Dir, Kvs);
-	type -> %% fixme test
-	    validate_flags(Dir, Kvs);
-	class -> %% fixme test
-	    validate_flags(Dir, Kvs);
-	alphabet -> %% fixme test
-	    validate_flags(Dir, Kvs);
-	compression -> %% fixme test
-	    validate_flags(Dir, Kvs);
-	store -> %% fixme test
-	    validate_flags(Dir, Kvs);
-	wait_type -> %% fixme test
-	    validate_flags(Dir, Kvs);
-	%% recognized options, but not for pdu
-	notify ->  %% fixme test?
-	    validate_flags(Dir, Kvs);
-	ref ->  %% fixme test?
+	polarity when is_boolean(Value) ->
 	    validate_flags(Dir, Kvs);
 	_ ->
-	    lager:debug("validate_flags: unknown pdu option ~p", 
+	    lager:debug("validate_flags: unknown option/value ~p", 
 			[{Key,Value}]),
 	    {error, badarg}
     end.
