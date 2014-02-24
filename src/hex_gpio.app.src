@@ -1,0 +1,13 @@
+{application, hex_gpio,
+ [
+  {description, "hex GPIO plugin"},
+  {vsn, git},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+		  gpio
+                 ]},
+  {mod, { hex_gpio_app, []}},
+  {env, []}
+ ]}.
