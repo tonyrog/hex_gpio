@@ -20,7 +20,7 @@
 -define(SERVER, ?MODULE).
 
 -define(EDGE_NONE,    0).
--define(EDGE_RISING, 1).
+-define(EDGE_RISING,  1).
 -define(EDGE_FALLING, 2).
 -define(EDGE_BOTH,    3).
 
