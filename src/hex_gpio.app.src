@@ -9,6 +9,5 @@
 		  gpio,
 		  hex
                  ]},
-  {mod, { hex_gpio_app, []}},
-  {env, []}
+  {mod, { hex_gpio_app, []}}
  ]}.
