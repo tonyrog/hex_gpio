@@ -11,6 +11,7 @@
 -behaviour(gen_server).
 
 -include_lib("lager/include/log.hrl").
+-include_lib("hex/include/hex.hrl").
 %% API
 -export([start_link/0, stop/0]).
 -export([add_event/2, del_event/1]).
@@ -160,7 +161,7 @@ handle_info({gpio_interrupt, PinReg, Pin, Value}, State) ->
 	    lists:foreach(
 	      fun({_Ref,EdgeMask,Signal}) ->
 		      if EdgeMask band TriggerMask =/= 0 ->
-			      hex_server ! Signal;
+			      hex_server:event(Signal,[{value,Value}]);
 			 true ->
 			      ok
 		      end

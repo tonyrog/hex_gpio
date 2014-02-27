@@ -76,7 +76,7 @@ init_event(out,Flags) ->
     end.
 
 %%
-%% validate_event(in | out, Flags::[{atom(),term()}])
+%% validate_event(in | out, Flags::[{atom(),term()}]) -> ok | {error,Error}
 %%
 validate_event(Dir, Flags) ->
     case lists:keytake(pin, 1, Flags) of
