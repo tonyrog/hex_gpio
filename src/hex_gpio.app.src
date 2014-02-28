@@ -6,8 +6,7 @@
   {applications, [
                   kernel,
                   stdlib,
-		  gpio,
-		  hex
+		  gpio
                  ]},
   {mod, { hex_gpio_app, []}}
  ]}.
