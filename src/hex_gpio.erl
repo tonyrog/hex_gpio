@@ -51,16 +51,22 @@ output(Flags, _Env) ->
     Pin = proplists:get_value(pin, Flags),
     PinReg = proplists:get_value(pin_reg, Flags, 0),
     PinReg = proplists:get_value(pin_reg, Flags, 0),
-    Value = case proplists:get_value(value, Flags, false) of
-		0 -> false;
-		1 -> true;
-		false -> false;
-		true -> true
+    Value = case value(Flags, undefined) of
+		undefined -> value(Env, undefined);
+		V -> V
 	    end,
     Polarity = proplists:get_value(polarity, Flags, false),
     case Value =/= Polarity of
 	false -> gpio:clr(PinReg, Pin);
 	true ->gpio:set(PinReg, Pin)
+    end.
+
+value(Flags,Default) ->
+    case proplists:get_value(value, Flags) of
+	undefined -> Default;
+	1 -> true;
+	0 -> false;
+	Bool -> Bool
     end.
 
 %%
