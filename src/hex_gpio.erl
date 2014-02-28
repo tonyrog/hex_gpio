@@ -47,7 +47,7 @@ del_event(Ref) ->
 %% output(Flags::[{atom(),term()}], Env::[{atom(),term()}]) ->
 %%    ok.
 %%
-output(Flags, _Env) ->
+output(Flags, Env) ->
     Pin = proplists:get_value(pin, Flags),
     PinReg = proplists:get_value(pin_reg, Flags, 0),
     PinReg = proplists:get_value(pin_reg, Flags, 0),
