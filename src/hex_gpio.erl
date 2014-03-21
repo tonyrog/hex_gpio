@@ -99,40 +99,29 @@ init_event(out,Flags) ->
 %%
 %% validate_event(in | out, Flags::[{atom(),term()}]) -> ok | {error,Error}
 %%
-validate_event(Dir, Flags) ->
-    case lists:keytake(pin, 1, Flags) of
-	false ->
-	    {error, {mandatory, [pin]}};
-	{value,{pin,Pin},Flags1} when is_integer(Pin), Pin >= 0 ->
-	    validate_event1(Dir, Flags1);
-	_ ->
-	    {error, {badarg, [pin]}}
-    end.
+validate_event(in, Flags) ->
+    hex:validate_flags(Flags, input_spec());
+validate_event(out, Flags) ->
+    hex:validate_flags(Flags, output_spec()).
 
-validate_event1(_Dir, []) ->
-    ok;
-validate_event1(Dir, [{Key,Value}|Kvs]) ->
-    case Key of
-	pin_reg when is_integer(Value), Value >= 0 ->
-	    validate_event1(Dir, Kvs);
-	value when Dir =:= out, is_boolean(Value) ->
-	    validate_event1(Dir, Kvs);
-	value when Dir =:= out, is_integer(Value), Value >= 0, Value =< 1 ->
-	    validate_event1(Dir, Kvs);
-	interrupt when Value =:= rising;
-		       Value =:= falling;
-		       Value =:= both ->
-	    validate_event1(Dir, Kvs);
-	init_value when Value =:= high;
-			Value =:= low ->
-	    validate_event1(Dir, Kvs);
-	polarity when is_boolean(Value) ->
-	    validate_event1(Dir, Kvs);
-	direct when is_boolean(Value) ->
-	    %% direct access (require that gpio is initalized with chipset!)
-	    validate_event1(Dir, Kvs);
-	_ ->
-	    lager:debug("validate_event: unknown option/value ~p", 
-			[{Key,Value}]),
-	    {error, badarg}
-    end.
+output_spec() ->
+    [{pin, mandatory, unsigned, undefined},
+     {pin_reg, optional, unsigned, 0},
+     {value, optional, {alt,[boolean,unsigned1]}, undefined},
+     {init_value, optional, {alt,[{const,high},
+				  {const,low},
+				  {const,out}]}, out},
+     {polarity, optional, boolean, false},
+     {direct, optional, boolean, false}
+    ].
+
+input_spec() ->
+    [{pin, mandatory, unsigned, undefined},
+     {pin_reg, optional, unsigned, 0},
+     {interrupt, optional, {alt,[{const,none},
+				 {const,rising},
+				 {const,falling},
+				 {const,both}]}, none},
+     {polarity, optional, boolean, false},
+     {direct, optional, boolean, false}
+    ].

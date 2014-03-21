@@ -60,6 +60,7 @@
 	}).
 
 -record(state, {
+	  joined = false  :: boolean(),
 	  pin_list = [] :: [#pinsub{}],
 	  ref_list = [] :: [{Ref::reference(),{PinReg::integer,Pin::integer()}}]
 	 }).
@@ -69,7 +70,7 @@
 %%%===================================================================
 
 add_event(Flags, Signal, Cb) when is_atom(Cb); is_function(Cb,2) ->
-    gen_server:call(?MODULE, {add_event, Flags, Signal, Cb}).
+    gen_server:call(?MODULE, {add_event, self(), Flags, Signal, Cb}).
 
 del_event(Ref) ->
     gen_server:call(?MODULE, {del_event, Ref}).
@@ -103,7 +104,8 @@ start_link() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-    {ok, #state{}}.
+    Joined = hex:auto_join(hex_gpio),
+    {ok, #state{joined=Joined}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -119,7 +121,7 @@ init([]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({add_event,Flags,Signal,Cb}, _From, State) ->
+handle_call({add_event,Pid,Flags,Signal,Cb}, _From, State) ->
     PinReg = proplists:get_value(pin_reg, Flags, 0),
     Pin = proplists:get_value(pin, Flags),
     Edge = proplists:get_value(interrupt, Flags, both),
@@ -129,8 +131,8 @@ handle_call({add_event,Flags,Signal,Cb}, _From, State) ->
 		   rising  -> ?EDGE_RISING;
 		   both    -> ?EDGE_BOTH
 	       end,
-    Ref = make_ref(),
-    case add_pinsub(Ref, {PinReg,Pin}, EdgeMask, Polarity, Signal, Cb, State) of
+    Ref = erlang:monitor(process, Pid),
+    case add_pinsub(Ref,{PinReg,Pin},EdgeMask,Polarity,Signal,Cb,State) of
 	{ok,State1} ->
 	    {reply, {ok,Ref}, State1};
 	Error ->
@@ -140,6 +142,7 @@ handle_call({add_event,Flags,Signal,Cb}, _From, State) ->
 handle_call({del_event,Ref}, _From, State) ->
     case del_pinsub(Ref, State) of
 	{ok, State1} ->
+	    erlang:demonitor(Ref, [flush]),
 	    {reply, ok, State1};
 	Error ->
 	    {reply, Error, State}
@@ -199,9 +202,16 @@ handle_info({gpio_interrupt, PinReg, Pin, Value}, State) ->
 	      end, PinSub#pinsub.subs),
 	    {noreply, State}
     end;
-
+handle_info({'DOWN',Ref,process,_Pid,_Reason}, State) ->
+    lager:debug("monitor DOWN ~p ~p", [_Pid,_Reason]),
+    case del_pinsub(Ref, State) of
+	{ok, State1} ->
+	    {noeply,State1};
+	_Error ->
+	    {noreply,State}
+    end;
 handle_info(_Info, State) ->
-    io:format("got info ~p\n", [_Info]),
+    lager:debug("unhandled info ~p", [_Info]),
     {noreply, State}.
 
 %%--------------------------------------------------------------------
