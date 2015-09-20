@@ -66,9 +66,8 @@ output(Flags, Env) ->
 value(Flags,Default) ->
     case proplists:get_value(value, Flags) of
 	undefined -> Default;
-	1 -> true;
-	0 -> false;
-	Bool -> Bool
+	Value when is_integer(Value) -> (Value =/= 0);
+	Value when is_boolean(Value) -> Value
     end.
 
 %%
