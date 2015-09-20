@@ -131,6 +131,8 @@ event_spec(in) ->
 		       {enum,falling,[]},
 		       {enum,both,[]}]},
 		     {default,none,[]}]},
+     {leaf,debounce,[{type,uint32,[]},
+		     {default,0,[]}]},
      {leaf,polarity,[{type,boolean,[]},
 		     {default,false,[]}]},
      {leaf,direct,[{type,boolean,[]},
