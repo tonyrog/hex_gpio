@@ -188,7 +188,7 @@ handle_cast(_Msg, State) ->
 %%--------------------------------------------------------------------
 handle_info({gpio_interrupt, PinReg, Pin, Value}, State) ->
     Key = {PinReg,Pin},
-    case lists:keyfind(Key, #pinsub.pin_key, State#state.pin_list) of
+    case lists:keytake(Key, #pinsub.pin_key, State#state.pin_list) of
 	false ->
 	    {noreply, State};
 	{value,PinSub,PinList} ->
@@ -200,7 +200,7 @@ handle_info({gpio_interrupt, PinReg, Pin, Value}, State) ->
 	    {noreply, State#state { pin_list = [PinSub1 | PinList]}}
     end;
 handle_info({timeout, Timer, {debounce,Key}}, State) ->
-    case lists:keyfind(Key, #pinsub.pin_key, State#state.pin_list) of
+    case lists:keytake(Key, #pinsub.pin_key, State#state.pin_list) of
 	false ->
 	    {noreply, State};
 	{value,PinSub,PinList} ->
