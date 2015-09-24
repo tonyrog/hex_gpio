@@ -52,7 +52,6 @@ del_event(Ref) ->
 output(Flags, Env) ->
     Pin = proplists:get_value(pin, Flags),
     PinReg = proplists:get_value(pin_reg, Flags, 0),
-    PinReg = proplists:get_value(pin_reg, Flags, 0),
     Value = value(Flags,Env,undefined),
     Polarity = proplists:get_value(polarity, Flags, false),
     if Value =/= undefined ->
@@ -65,15 +64,19 @@ output(Flags, Env) ->
     end.
 
 value(Flags,Env,Default) ->
-    case lookup_flag(value,Flags,Env,Default) of
+    case lookup_value_flag(Flags,Env,Default) of
 	undefined -> Default;
 	Value when is_integer(Value) -> (Value =/= 0);
 	Value when is_boolean(Value) -> Value
     end.
 
-lookup_flag(Flag,Flags,Env,Default) ->
-    case proplists:get_value(Flag, Flags, Default) of
-	{env,Name} -> proplists:get_value(Name, Env, Default);
+lookup_value_flag(Flags,Env,Default) ->
+    case proplists:get_value(value, Flags, undefined) of
+	undefined ->
+	    case proplists:get_value(map,Flags,"") of
+		"" -> Default;
+		Name -> proplists:get_value(Name, Env, Default)
+	    end;
 	Value -> Value
     end.
 
@@ -118,6 +121,7 @@ event_spec(out) ->
     [{leaf,pin,[{type,uint8,[]},{mandatory,true,[]}]},
      {leaf,pin_reg,[{type,uint8,[]},{default,0,[]}]},
      {leaf,value,[{type,uint8,[{range,[{0,1}],[]}]}]}, %% boolean?
+     {leaf,map,[{type,string,[]},{default,"",[]}]}, %% output map
      {leaf,init_value,[{type,enumeration,
 			[{enum,high,[]},
 			 {enum,low,[]},
